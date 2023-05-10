@@ -54,6 +54,7 @@ const Mapscreen = () => {
   };
   const [zoomLevel, setZoomLevel] = useState(defaultCamera.zoomLevel);
   const [location, setLocation] = useState(false);
+  const [route, setRoute] = useState(null);
 
   // function to check permissions and get Location
   const getLocation = () => {
@@ -153,6 +154,18 @@ const Mapscreen = () => {
               title={'Welcome to Adama Science and Technology University'}
             />
           </MapboxGL.PointAnnotation>
+          {route && (
+            <MapboxDirections
+              origin={[39.29067144628581, 8.562990740516645]}
+              destination={route.geometry.coordinates[route.geometry.coordinates.length - 1]}
+              apiBaseUrl="https://api.mapbox.com"
+              accessToken={MapboxGL.getAccessToken()}
+              mode="walking"
+              strokeWidth={4}
+              strokeColor="red"
+              onRouteIndexChange={routeIndex => console.log('routeIndex', routeIndex)}
+            />
+          )}
         </MapboxGL.MapView>
         <View style={styles.touchableZoom}>
           <TouchableOpacity onPress={increaseZoom}>
@@ -164,10 +177,28 @@ const Mapscreen = () => {
         </View>
 
         <TouchableOpacity style={styles.layerIcon} onPress={changeStyle}>
-   
-            <Entypo name="layers" size={24} color="white" />
-         
+          <Entypo name="layers" size={24} color="white" />
         </TouchableOpacity>
+        <View style={{position: 'absolute', bottom: 20}}>
+          <Button
+            title="Get Directions"
+            onPress={() => {
+              if (location) {
+                fetch(
+                  `https://api.mapbox.com/directions/v5/mapbox/walking/${location.coords.longitude},${location.coords.latitude};39.2906,8.5623?access_token=${MapboxGL.getAccessToken()}&geometries=geojson`,
+                )
+                  .then(response => response.json())
+                  .then(data => {
+                    console.log(data);
+                    setRoute(data.routes[0]);
+                  })
+                  .catch(error => {
+                    console.log(error);
+                  });
+              }
+            }}
+          />
+        </View>
       </View>
     </View>
   );

@@ -12,6 +12,26 @@ const RouteScreen = () => {
     />
     </Pressable>
     </View>
+          <View style={{position: 'absolute', bottom: 20}}>
+          <Button
+            title="Get Directions"
+            onPress={() => {
+              if (location) {
+                fetch(
+                  `https://api.mapbox.com/directions/v5/mapbox/walking/${location.coords.longitude},${location.coords.latitude};39.2906,8.5623?access_token=${MapboxGL.getAccessToken()}&geometries=geojson`,
+                )
+                  .then(response => response.json())
+                  .then(data => {
+                    console.log(data);
+                    setRoute(data.routes[0]);
+                  })
+                  .catch(error => {
+                    console.log(error);
+                  });
+              }
+            }}
+          />
+        </View>
   );
 };
 
@@ -39,8 +59,9 @@ import Entypo from 'react-native-vector-icons/Entypo';
 import AntDesign from 'react-native-vector-icons/AntDesign';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
-import React, {useCallback, useMemo, useRef, useState,useEffect} from 'react';
+import React, {useCallback, useMemo, useRef, useState, useEffect} from 'react';
 import {
+  Button,
   StyleSheet,
   View,
   Platform,
@@ -52,7 +73,6 @@ import MapboxGL from '@rnmapbox/maps';
 import Route from '../components/Route';
 import BottomSheet from '@gorhom/bottom-sheet';
 
-
 const IS_ANDROID = Platform.OS === 'android';
 
 MapboxGL.setAccessToken(
@@ -60,7 +80,6 @@ MapboxGL.setAccessToken(
 );
 
 const ShowMap = () => {
-
   const mapViewRef = useRef(null);
   const cameraRef = useRef(null);
   const [isSateliteStyle, setSateliteStyle] = useState(false);
@@ -69,7 +88,7 @@ const ShowMap = () => {
     zoomLevel: 15,
   };
   const [zoomLevel, setZoomLevel] = useState(defaultCamera.zoomLevel);
-
+  const [route, setRoute] = useState(null);
 
   const bottomSheetRef = useRef(null);
   const [isOpen, setIsOpen] = useState(false);
@@ -129,8 +148,17 @@ const ShowMap = () => {
     }
   }, [zoomLevel]);
 
-
-
+  const fetchRoute = async () => {
+  const accessToken = 'pk.eyJ1IjoieW9uYXMxMyIsImEiOiJjbGZzZzZqd2YwNXRvM2VxcmdyMTc4MWg4In0.svu9-rLT7GOuHkrLA5Aejw';
+    //const origin = `${startLng},${startLat}`;
+    //const destination = `${destLng},${destLat}`;
+    const origin = [39.287087,8.565724];
+    const destination = [39.289035,8.560628];
+    const url = `https://api.mapbox.com/directions/v5/mapbox/walking/${origin};${destination}?access_token=${accessToken}&geometries=geojson`;
+    const response = await fetch(url);
+    const data = await response.json();
+    setRoute(data.routes[0]);
+  };
   return (
     <View style={styles.container}>
       <MapboxGL.MapView
@@ -147,13 +175,13 @@ const ShowMap = () => {
                     */
         />
         <MapboxGL.Camera
-            ref={cameraRef}
-            zoomLevel={zoomLevel}
-            animationMode={'flyTo'}
-            animationDuration={1100}
-            defaultSettings={defaultCamera}
-            maxZoomLevel={22}
-            minZoomLevel={4}
+          ref={cameraRef}
+          zoomLevel={zoomLevel}
+          animationMode={'flyTo'}
+          animationDuration={1100}
+          defaultSettings={defaultCamera}
+          maxZoomLevel={22}
+          minZoomLevel={4}
           centerCoordinate={location}>
           <MapboxGL.PointAnnotation
             id="annotationExample"
@@ -168,6 +196,14 @@ const ShowMap = () => {
             />
           </MapboxGL.PointAnnotation>
         </MapboxGL.Camera>
+        {route && (
+          <MapboxGL.ShapeSource id="routeSource" shape={route.geometry}>
+            <MapboxGL.LineLayer
+              id="routeFill"
+              style={{lineColor: 'purple', lineWidth: 4}}
+            />
+          </MapboxGL.ShapeSource>
+        )}
       </MapboxGL.MapView>
       <TouchableOpacity
         style={styles.touchable}
@@ -178,13 +214,13 @@ const ShowMap = () => {
         />
       </TouchableOpacity>
       <View style={styles.touchableZoom}>
-          <TouchableOpacity onPress={increaseZoom}>
-            <Entypo name="plus" color="black" size={20} />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={decreaseZoom}>
-            <Entypo name="minus" color="black" size={20} />
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity onPress={increaseZoom}>
+          <Entypo name="plus" color="black" size={20} />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={decreaseZoom}>
+          <Entypo name="minus" color="black" size={20} />
+        </TouchableOpacity>
+      </View>
       <BottomSheet
         ref={bottomSheetRef}
         snapPoints={snapPoints}
@@ -202,6 +238,7 @@ const ShowMap = () => {
       <TouchableOpacity style={styles.layerIcon} onPress={changeStyle}>
         <Entypo name="layers" size={24} color="white" />
       </TouchableOpacity>
+      <Button title="Get Directions" onPress={fetchRoute} />
     </View>
   );
 };
@@ -259,7 +296,7 @@ const styles = StyleSheet.create({
     borderTopStartRadius: 20,
     paddingTop: 10,
     paddingBottom: 10,
-  }, 
+  },
   layerIcon: {
     position: 'absolute',
     left: 10,
