@@ -1,80 +1,115 @@
-import {StyleSheet, Text, View} from 'react-native';
-import React, {useContext, useCallback, useMemo, useRef, useState} from 'react';
-import FormButton from '../components/FormButton';
+import {StyleSheet, View, ScrollView, Image} from 'react-native';
+
+import React, {useContext, useRef, useState} from 'react';
 import {AuthContext} from '../navigation/AuthProvider';
-import {TouchableOpacity, Image} from 'react-native';
 
-import Entypo from 'react-native-vector-icons/Entypo';
-import AntDesign from 'react-native-vector-icons/AntDesign';
-import Ionicons from 'react-native-vector-icons/Ionicons';
+import {TouchableOpacity} from 'react-native-gesture-handler';
+import {SafeAreaProvider} from 'react-native-safe-area-context';
+import {images} from '../components/Images';
 
-import BottomSheet from '@gorhom/bottom-sheet';
-import Route from '../components/Route';
-import { useIsFocused } from '@react-navigation/native';
+import {
+  Button,
+  Card,
+  Icon,
+  Text,
+  Tile,
+  Header as HeaderRNE,
+  HeaderProps,
+  Avatar,
+} from '@rneui/themed';
+import Navoptions from '../components/NavOptions';
 
 const Homescreen = ({navigation}) => {
+  //const navigation =useNavigation();
+
   const {user, Logout} = useContext(AuthContext);
 
   const bottomSheetRef = useRef(null);
   const [isOpen, setIsOpen] = useState(true);
-  const snapPoints = useMemo(() => ['30', '50%', '75%'], []);
-
-  const handleSheetChanges = useCallback(index => {
-    console.log(index);
-  }, []);
-  const handleSnapPress = useCallback(index => {
-    bottomSheetRef.current?.snapToIndex(index);
-    setIsOpen(true);
-  }, []);
-
-
-  const isFocused = useIsFocused()
 
   return (
-    <View style={styles.container}>
-      <FormButton
-        buttonTitle="bottomsheet"
-        onPress={() => navigation.navigate('Bottom')}
+    <SafeAreaProvider>
+      <HeaderRNE
+        leftComponent={
+          <TouchableOpacity>
+            <Avatar
+              size={32}
+              rounded
+              icon={{ name: 'user', type: 'font-awesome' ,color:'black' }}
+              containerStyle={{ backgroundColor: '#ffffff' }}
+            />
+          </TouchableOpacity>
+        }
+        rightComponent={
+          <View style={styles.headerRight}>
+            <TouchableOpacity style={{marginLeft: 10}}>
+              <Icon
+                type="simple-line-icon"
+                name="logout"
+                color="white"
+                onPress={() => Logout()}
+              />
+            </TouchableOpacity>
+          </View>
+        }
+        centerComponent={{text: 'CNM', style: styles.heading}}
       />
-      <TouchableOpacity
-        style={styles.touchableopacity}
-        onPress={() => handleSnapPress(0)}>
-        <Image
-          style={styles.floatingButton}
-          source={require('../assets/Navicon.png')}
-        />
-      </TouchableOpacity>
-      <Text style={styles.text}>{user.uid}</Text>
-      <FormButton buttonTitle="Logout" onPress={() => Logout()} />
-      <View style={styles.touchableZoom}>
-        <TouchableOpacity>
-          <AntDesign name="plus" color="black" size={24} />
-        </TouchableOpacity>
-        <TouchableOpacity>
-          <AntDesign name="minus" color="black" size={24} />
-        </TouchableOpacity>
+
+      <View style={styles.container}>
+        <ScrollView style={{paddingVertical: 10}}>
+          <Navoptions />
+          <Text style={styles.subHeader}>Indoor Nav</Text>
+          <View style={{paddingTop: 20, paddingBottom: 10}}>
+            <Tile
+              imageSrc={{
+                uri: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d6/Half_Dome_from_Glacier_Point%2C_Yosemite_NP_-_Diliff.jpg/320px-Half_Dome_from_Glacier_Point%2C_Yosemite_NP_-_Diliff.jpg',
+              }}
+              title="This is full campus navigation using images "
+              titleStyle={{fontSize: 20, textAlign: 'center', paddingBottom: 5}}
+              featured
+              activeOpacity={1}
+              width={310}>
+              <View
+                style={{
+                  flex: 1,
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                }}>
+                <Text style={{color: 'green'}}>Visit</Text>
+                <Text style={{color: '#397af8'}}>Find out More</Text>
+              </View>
+            </Tile>
+          </View>
+          <View>
+            <Card>
+              <Card.Title>🔭 EXPLORE ASTU 🗺️ </Card.Title>
+              <Card.Divider />
+              <Card.Image style={{padding: 0}} source={images.profile[1]} />
+              <Text style={{marginBottom: 10}}>
+                This is the webview of Indoor and Outdoor Navigation of Adama
+                Science And Technology University using virtual images
+              </Text>
+              <Button
+                icon={
+                  <Icon
+                    name="code"
+                    color="#ffffff"
+                    iconStyle={{marginRight: 10}}
+                  />
+                }
+                buttonStyle={{
+                  borderRadius: 0,
+                  marginLeft: 0,
+                  marginRight: 0,
+                  marginBottom: 0,
+                }}
+                title="Explore NOW"
+              />
+            </Card>
+          </View>
+        </ScrollView>
       </View>
-      <TouchableOpacity style={styles.layerIcon}>
-  {isFocused ? (
-    <Entypo name="layers" size={24} color="#fff" />
-  ) : (
-    <Ionicons name="layers" size={24} color="#1565C0" />
-  )}
-</TouchableOpacity>
-      <BottomSheet
-        ref={bottomSheetRef}
-        index={-1}
-        snapPoints={snapPoints}
-        enablePanDownToClose={true}
-        onClose={() => setIsOpen(false)}
-        onChange={handleSheetChanges}
-        style={styles.bottomSheet}
-        >  
-        <View style={styles.contentContainer}>
-          <Route/>
-        </View>
-      </BottomSheet>
-    </View>
+    </SafeAreaProvider>
   );
 };
 
@@ -84,38 +119,14 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     alignItems: 'center',
+    height: '100%',
     justifyContent: 'center',
-    backgroundColor: 'grey',
+    backgroundColor: 'white',
     padding: 10,
   },
   text: {
     fontSize: 20,
     color: '#333333',
-  },
-  touchableopacity: {
-    position: 'absolute',
-    width: 50,
-    height: 50,
-    alignItems: 'center',
-    justifyContent: 'center',
-    right: 30,
-    bottom: 20,
-  },
-  floatingButton: {
-    resizeMode: 'contain',
-  },
-  touchableZoom: {
-    position: 'absolute',
-    width: 40,
-    gap: 10,
-    resizeMode: 'contain',
-    alignItems: 'center',
-    justifyContent: 'center',
-    right: 15,
-    bottom: '50%',
-    backgroundColor: 'black',
-    borderBottomEndRadius: 25,
-    borderTopStartRadius: 25,
   },
   header: {
     backgroundColor: '#f7f5eee8',
@@ -129,23 +140,63 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
   },
-  panelHeader: {
-    alignItems: 'center',
+  ImFlatlist: {
+    width: 100,
+    height: 100,
+    resizeMode: 'contain',
   },
-  panelHandle: {
-    width: 40,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#00000040',
-    marginBottom: 10,
-  },
-  layerIcon:{
-    position: 'absolute',
-    left: 10,
-    bottom: '65%',
-    alignItems: 'center',
+  touchableFlat: {
+    flex: 1,
+    padding: 2,
+    paddingBottom: 8,
+    paddingTop: 4,
+    paddingLeft: 6,
+    backgroundColor: '#eaeaea',
+    margin: 10,
+    width: 140,
+    height: 170,
     justifyContent: 'center',
-    width: 40,
-    height: 40,
-  }
+    alignItems: 'center',
+  },
+  touchableText: {
+    marginTop: 2,
+    fontSize: 15,
+    fontWeight: 'semibold',
+    color: 'black',
+  },
+  FlIcon: {
+    padding: 2,
+    backgroundColor: 'black',
+    borderRadius: 50,
+  },
+  subHeader: {
+    backgroundColor: '#2089dc',
+    color: 'white',
+    textAlign: 'center',
+    paddingVertical: 5,
+    marginTop: 10,
+  },
+  headerContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#397af8',
+    marginBottom: 20,
+    width: '100%',
+    paddingVertical: 15,
+  },
+  heading: {
+    color: 'white',
+    fontSize: 22,
+    fontWeight: 'bold',
+  },
+  headerRight: {
+    display: 'flex',
+    flexDirection: 'row',
+    marginTop: 5,
+  },
+  subheaderText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
 });

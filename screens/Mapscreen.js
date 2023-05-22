@@ -1,5 +1,5 @@
 import React, {useRef, useState, useEffect} from 'react';
-import MapboxGL from '@rnmapbox/maps';
+import MapboxGL, {Camera, PointAnnotation, MarkerView} from '@rnmapbox/maps';
 import Geolocation from 'react-native-geolocation-service';
 import {
   Button,
@@ -7,16 +7,18 @@ import {
   StyleSheet,
   Text,
   View,
+  ScrollView,
   TouchableOpacity,
 } from 'react-native';
 
 import Entypo from 'react-native-vector-icons/Entypo';
-import AntDesign from 'react-native-vector-icons/AntDesign';
-import Ionicons from 'react-native-vector-icons/Ionicons';
 
-MapboxGL.setAccessToken(
-  'pk.eyJ1IjoieW9uYXMxMyIsImEiOiJjbGZzZzZqd2YwNXRvM2VxcmdyMTc4MWg4In0.svu9-rLT7GOuHkrLA5Aejw',
-);
+import {SafeAreaProvider} from 'react-native-safe-area-context';
+
+import {MAP_BOX_ACCESS_TOKEN} from '../utils/constants/constants';
+import BottomNavigation from '../components/BottomNavigation';
+import {Icon} from '@rneui/themed';
+MapboxGL.setAccessToken(MAP_BOX_ACCESS_TOKEN);
 
 const requestLocationPermission = async () => {
   try {
@@ -47,6 +49,8 @@ const requestLocationPermission = async () => {
 const Mapscreen = () => {
   const mapViewRef = useRef(null);
   const cameraRef = useRef(null);
+  const pointAnnotation = useRef(null);
+
   const [isSateliteStyle, setSateliteStyle] = useState(false);
   const defaultCamera = {
     centerCoordinate: [39.29067144628581, 8.562990740516645],
@@ -54,7 +58,6 @@ const Mapscreen = () => {
   };
   const [zoomLevel, setZoomLevel] = useState(defaultCamera.zoomLevel);
   const [location, setLocation] = useState(false);
-  const [route, setRoute] = useState(null);
 
   // function to check permissions and get Location
   const getLocation = () => {
@@ -66,12 +69,12 @@ const Mapscreen = () => {
           position => {
             console.log(position);
             setLocation(position);
-            mapViewRef.current.getCamera().setCamera({
+            mapViewRef.current.setCamera({
               centerCoordinate: [
                 position.coords.longitude,
                 position.coords.latitude,
               ],
-              zoom: 13,
+              zoom: 15,
             });
           },
           error => {
@@ -83,7 +86,7 @@ const Mapscreen = () => {
       }
     });
   };
-
+  console.log();
   const changeStyle = () => {
     setSateliteStyle(!isSateliteStyle);
   };
@@ -110,97 +113,141 @@ const Mapscreen = () => {
   }, [zoomLevel]);
 
   return (
-    <View style={styles.page}>
-      <View
-        style={{marginTop: 10, padding: 10, borderRadius: 10, width: '40%'}}>
-        <Button title="Get Location" onPress={getLocation} />
-      </View>
-      <View style={styles.container}>
-        <MapboxGL.MapView
-          ref={mapViewRef}
-          onRegionChangeComplete={handleRegionChange}
-          pitchEnabled={true}
-          rotateEnabled={true}
-          style={styles.map}
-          styleURL={
-            !isSateliteStyle
-              ? MapboxGL.StyleURL.Satellite
-              : MapboxGL.StyleURL.Street
-          }
-          localizeLabels={true}
-          compassEnabled={true}
-          zoomEnabled={true}>
-          <MapboxGL.Camera
-            ref={cameraRef}
-            zoomLevel={zoomLevel}
-            animationMode={'flyTo'}
-            animationDuration={1100}
-            //centerCoordinate={centerCoordinate}
-            defaultSettings={defaultCamera}
-            maxZoomLevel={22}
-            minZoomLevel={4}
-            centerCoordinate={[39.29, 8.56]}
-          />
-          {/* The following annotation will be displayed in the specified coordinate */}
-          <MapboxGL.PointAnnotation
-            id="annotationExample"
-            coordinate={[39.2906, 8.5623]}
-            title="Title Example"
-            snippet="Snippet Example">
-            <View style={styles.annotationContainer}>
-              <View style={styles.annotationFill} />
-            </View>
-            <MapboxGL.Callout
-              title={'Welcome to Adama Science and Technology University'}
-            />
-          </MapboxGL.PointAnnotation>
-          {route && (
-            <MapboxDirections
-              origin={[39.29067144628581, 8.562990740516645]}
-              destination={route.geometry.coordinates[route.geometry.coordinates.length - 1]}
-              apiBaseUrl="https://api.mapbox.com"
-              accessToken={MapboxGL.getAccessToken()}
-              mode="walking"
-              strokeWidth={4}
-              strokeColor="red"
-              onRouteIndexChange={routeIndex => console.log('routeIndex', routeIndex)}
-            />
-          )}
-        </MapboxGL.MapView>
-        <View style={styles.touchableZoom}>
-          <TouchableOpacity onPress={increaseZoom}>
-            <Entypo name="plus" color="black" size={20} />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={decreaseZoom}>
-            <Entypo name="minus" color="black" size={20} />
-          </TouchableOpacity>
+    <SafeAreaProvider>
+      <View style={styles.page}>
+        <View
+          style={{marginTop: 10, padding: 10, borderRadius: 10, width: '40%'}}>
+          <Button title="Get Location" onPress={getLocation} />
         </View>
+        <View style={styles.container}>
+          <MapboxGL.MapView
+            ref={mapViewRef}
+            onRegionChangeComplete={handleRegionChange}
+            pitchEnabled={true}
+            rotateEnabled={true}
+            style={styles.map}
+            styleURL={
+              !isSateliteStyle
+                ? MapboxGL.StyleURL.Satellite
+                : MapboxGL.StyleURL.Street
+            }
+            compassEnabled={true}
+            zoomEnabled={true}>
+            <MapboxGL.Camera
+              ref={cameraRef}
+              zoomLevel={zoomLevel}
+              animationMode={'flyTo'}
+              animationDuration={1100}
+              //centerCoordinate={centerCoordinate}
+              defaultSettings={defaultCamera}
+              maxZoomLevel={22}
+              minZoomLevel={4}
+            />
+            {/* The following annotation will be displayed in the specified coordinate */}
+            <MapboxGL.PointAnnotation
+              id="annotationExample"
+              coordinate={[39.2906, 8.5623]}
+              title="Title Example"
+              snippet="Snippet Example">
+              <View style={styles.annotationContainer}>
+                <View style={styles.annotationFill} />
+              </View>
+              <MapboxGL.Callout
+                title={'Welcome to Adama Science and Technology University'}
+              />
+            </MapboxGL.PointAnnotation>
+            <MapboxGL.UserLocation />
+          </MapboxGL.MapView>
+          <View style={styles.touchableZoom}>
+            <TouchableOpacity onPress={increaseZoom}>
+              <Entypo name="plus" color="black" size={20} />
+            </TouchableOpacity>
 
-        <TouchableOpacity style={styles.layerIcon} onPress={changeStyle}>
-          <Entypo name="layers" size={24} color="white" />
-        </TouchableOpacity>
-        <View style={{position: 'absolute', bottom: 20}}>
-          <Button
-            title="Get Directions"
-            onPress={() => {
-              if (location) {
-                fetch(
-                  `https://api.mapbox.com/directions/v5/mapbox/walking/${location.coords.longitude},${location.coords.latitude};39.2906,8.5623?access_token=${MapboxGL.getAccessToken()}&geometries=geojson`,
-                )
-                  .then(response => response.json())
-                  .then(data => {
-                    console.log(data);
-                    setRoute(data.routes[0]);
-                  })
-                  .catch(error => {
-                    console.log(error);
-                  });
-              }
-            }}
-          />
+            <TouchableOpacity onPress={decreaseZoom}>
+              <Entypo name="minus" color="black" size={20} />
+            </TouchableOpacity>
+          </View>
+          <TouchableOpacity style={styles.layerIcon} onPress={changeStyle}>
+            <Entypo name="layers" size={24} color="white" />
+          </TouchableOpacity>
+          {/* .............,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,*/}
+          <View style={{position: 'absolute', bottom: '1%'}}>
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              showsHorizontalScrollIndicator={false}
+              horizontal>
+              <View style={styles.tabContainer}>
+                <View style={styles.tabViews}>
+                  <View style={[styles.tabIcon, {backgroundColor: 'orange'}]}>
+                    <Icon
+                      name="restaurant"
+                      type="material"
+                      color="white"
+                      size={13}
+                    />
+                  </View>
+                  <Text style={styles.containertext}>Where to eat</Text>
+                </View>
+                <View style={styles.tabViews}>
+                  <View style={[styles.tabIcon, {backgroundColor: 'purple'}]}>
+                    <Icon
+                      name="bunk-bed"
+                      type="material-community"
+                      color="white"
+                      size={13}
+                    />
+                  </View>
+                  <Text style={styles.containertext}> Dormitories</Text>
+                </View>
+                <View style={styles.tabViews}>
+                  <View style={[styles.tabIcon, {backgroundColor: 'gray'}]}>
+                    <Icon
+                      name="wifi-marker"
+                      type="material-community"
+                      color="white"
+                      size={13}
+                    />
+                  </View>
+                  <Text style={styles.containertext}>Wifi</Text>
+                </View>
+                <View style={styles.tabViews}>
+                  <View
+                    style={[styles.tabIcon, {backgroundColor: 'turquoise'}]}>
+                    <Icon name="shop" type="entypo" color="white" size={13} />
+                  </View>
+                  <Text style={styles.containertext}>Shops/groceries</Text>
+                </View>
+                <View style={styles.tabViews}>
+                  <View style={[styles.tabIcon, {backgroundColor: 'navy'}]}>
+                    <Icon
+                      name="office-building-marker"
+                      type="material-community"
+                      color="white"
+                      size={13}
+                    />
+                  </View>
+                  <Text style={styles.containertext}>
+                    Department and schools
+                  </Text>
+                </View>
+                <View style={styles.tabViews}>
+                  <View style={[styles.tabIcon, {backgroundColor: 'maroon'}]}>
+                    <Icon
+                      name="bookshelf"
+                      type="material-community"
+                      color="white"
+                      size={13}
+                    />
+                  </View>
+                  <Text style={styles.containertext}>Libraries</Text>
+                </View>
+              </View>
+            </ScrollView>
+          </View>
+          {/* .............,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,*/}
         </View>
       </View>
-    </View>
+    </SafeAreaProvider>
   );
 };
 
@@ -259,4 +306,46 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
   },
+  ///////////////////////////////////////////////////////////////////////// ////////////////
+  tabContainer: {
+    width: '100%',
+    height: 50,
+    padding: 5,
+    flexDirection: 'row',
+    backgroundColor: 'transparent',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tabViews: {
+    flexDirection: 'row',
+    marginTop: 2,
+    marginBottom: 2,
+    marginLeft: 6,
+    marginRight: 6,
+    paddingTop: 2,
+    paddingBottom: 2,
+    paddingLeft: 8,
+    paddingRight: 8,
+    backgroundColor: 'white',
+    borderRadius: 10,
+    height: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  containertext: {
+    color: 'black',
+    fontWeight: 700,
+    fontFamily: 'Futura',
+    fontSize: 12,
+  },
+  tabIcon: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 5,
+    borderRadius: 50,
+    backgroundColor: 'silver',
+    padding: 3,
+  },
+  /////////////////////////////////////////////////////////////////////////////////////
 });

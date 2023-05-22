@@ -12,6 +12,7 @@ import Feather from 'react-native-vector-icons/Feather';
 import {windowHeight} from '../utils/dimensions';
 
 import filter from 'lodash.filter';
+import {SafeAreaProvider} from 'react-native-safe-area-context';
 
 const API_ENDPOINT = `https://randomuser.me/api/?results=30`;
 
@@ -31,7 +32,7 @@ const SearchScreen = () => {
       const response = await fetch(url);
       const json = await response.json();
       setData(json.results);
-      
+
       setFulldata(json.results);
 
       console.log(json.results);
@@ -59,7 +60,6 @@ const SearchScreen = () => {
       return true;
 
     return false;
-    
   };
 
   if (isLoading) {
@@ -80,45 +80,57 @@ const SearchScreen = () => {
   }
 
   return (
-    <View>
-      <View style={styles.inputContainer}>
-        <Feather name="search" size={24} color="black" />
-        <TextInput
-          placeholder="Enter place you want to Search"
-          autoCapitalize="none"
-          autoCorrect={false}
-          value={searchQuery}
-          onChangeText={query => handlesearch(query)}
+    <SafeAreaProvider>
+      <View style={styles.container}>
+        <View style={styles.inputContainer}>
+          <Feather name="search" size={24} color="black" />
+          <TextInput
+            placeholder="Enter place you want to Search"
+            autoCapitalize="none"
+            autoCorrect={false}
+            value={searchQuery}
+            onChangeText={query => handlesearch(query)}
+          />
+        </View>
+        <FlatList
+          data={data}
+          keyExtractor={item => item.login.username}
+          renderItem={({item}) => (
+            <View style={styles.itemcontainer}>
+              <Image
+                source={{uri: item.picture.thumbnail}}
+                style={styles.image}
+              />
+              <View>
+                <Text style={styles.textName}>
+                  {item.name.first}
+                  {item.name.last}
+                </Text>
+                <Text style={styles.textEmail}>{item.email}</Text>
+              </View>
+            </View>
+          )}
         />
       </View>
-      <FlatList
-        data={data}
-        keyExtractor={item => item.login.username}
-        renderItem={({item}) => (
-          <View style={styles.itemcontainer}>
-            <Image
-              source={{uri: item.picture.thumbnail}}
-              style={styles.image}
-            />
-            <View>
-              <Text style={styles.textName}>
-                {item.name.first}
-                {item.name.last}
-              </Text>
-              <Text style={styles.textEmail}>{item.email}</Text>
-            </View>
-          </View>
-        )}
-      />
-    </View>
+    </SafeAreaProvider>
   );
 };
 
 export default SearchScreen;
 
 const styles = StyleSheet.create({
-  inputContainer: {
-    marginTop: 5,
+  container: {
+      flex: 1,
+      marginTop:10,
+      alignItems: 'center',
+      height: '100%',
+      justifyContent: 'center',
+      backgroundColor: 'white',
+      padding: 10,
+    },
+  inputContainer: 
+  {
+    marginTop: 10,
     marginBottom: 10,
     width: '100%',
     height: windowHeight / 15,

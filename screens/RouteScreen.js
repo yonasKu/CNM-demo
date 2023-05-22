@@ -1,104 +1,58 @@
-/*import {StyleSheet,Pressable, TextInput,View} from 'react-native';
-import React from 'react';
-import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
-import { windowHeight} from '../utils/dimensions';
-
-const RouteScreen = () => {
-  return (
-    <View >
-    <Pressable style={styles.inputContainer}>
-    <MaterialIcons name="location-on" size={24} color="black" />
-    <TextInput placeholder="Enter your destination" style={styles.icon}
-    />
-    </Pressable>
-    </View>
-          <View style={{position: 'absolute', bottom: 20}}>
-          <Button
-            title="Get Directions"
-            onPress={() => {
-              if (location) {
-                fetch(
-                  `https://api.mapbox.com/directions/v5/mapbox/walking/${location.coords.longitude},${location.coords.latitude};39.2906,8.5623?access_token=${MapboxGL.getAccessToken()}&geometries=geojson`,
-                )
-                  .then(response => response.json())
-                  .then(data => {
-                    console.log(data);
-                    setRoute(data.routes[0]);
-                  })
-                  .catch(error => {
-                    console.log(error);
-                  });
-              }
-            }}
-          />
-        </View>
-  );
-};
-
-export default RouteScreen;
-
-const styles = StyleSheet.create({
-    inputContainer: {
-        marginTop: 5,
-        marginBottom: 10,
-        height: windowHeight / 15,
-        borderColor: '#ccc',
-        borderRadius: 5,
-        borderWidth: 1,
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#fff',
-      },
-
-      icon:{
-        justifyContent:"flex-end"
-      }
-});
-*/
-import Entypo from 'react-native-vector-icons/Entypo';
-import AntDesign from 'react-native-vector-icons/AntDesign';
-import Ionicons from 'react-native-vector-icons/Ionicons';
-
 import React, {useCallback, useMemo, useRef, useState, useEffect} from 'react';
 import {
   Button,
+  ScrollView,
   StyleSheet,
   View,
   Platform,
   TouchableOpacity,
   Image,
+  Text,
 } from 'react-native';
-import MapboxGL from '@rnmapbox/maps';
+import MapboxGL, {Camera, PointAnnotation, MarkerView} from '@rnmapbox/maps';
+import Entypo from 'react-native-vector-icons/Entypo';
 
-import Route from '../components/Route';
+import {SafeAreaProvider} from 'react-native-safe-area-context';
+
+import RouteInput from '../components/RouteInput';
 import BottomSheet from '@gorhom/bottom-sheet';
+import {images} from '../components/Images';
+import * as turf from '@turf/turf';
+import {MAP_BOX_ACCESS_TOKEN} from '../utils/constants/constants';
+import {useRoute} from '@react-navigation/native';
+import Geolocation from 'react-native-geolocation-service';
+import {Icon} from '@rneui/themed';
+import BottomNavigation from '../components/BottomNavigation';
 
 const IS_ANDROID = Platform.OS === 'android';
 
-MapboxGL.setAccessToken(
-  'pk.eyJ1IjoieW9uYXMxMyIsImEiOiJjbGZzZzZqd2YwNXRvM2VxcmdyMTc4MWg4In0.svu9-rLT7GOuHkrLA5Aejw',
-);
+MapboxGL.setAccessToken(MAP_BOX_ACCESS_TOKEN);
 
-const ShowMap = () => {
+const RouteScreen = () => {
   const mapViewRef = useRef(null);
   const cameraRef = useRef(null);
+
+  const pointAnnotation = useRef(null);
+
   const [isSateliteStyle, setSateliteStyle] = useState(false);
   const defaultCamera = {
     //centerCoordinate: [39.29067144628581, 8.562990740516645],
     zoomLevel: 15,
   };
   const [zoomLevel, setZoomLevel] = useState(defaultCamera.zoomLevel);
-  const [route, setRoute] = useState(null);
+  const userTrackingMode =
+    MapboxGL.UserTrackingModes.FollowWithCourseAndHeading;
+  //const [route, setRoute] = useState(null);
 
   const bottomSheetRef = useRef(null);
   const [isOpen, setIsOpen] = useState(false);
-  const [snapPoints] = useState(['30', '50%', '75%']);
+  const [snapPoints] = useState(['50%', '75%', '35%']);
   const [isAndroidPermissionGranted, setIsAndroidPermissionGranted] =
     useState(false);
   const [isFetchingAndroidPermission, setIsFetchingAndroidPermission] =
     useState(IS_ANDROID);
   const [coordinates] = useState([[39.29067144628581, 8.562990740516645]]);
-  const [showUserLocation] = useState(true);
+
   const [location, setLocation] = useState([
     39.29067144628581, 8.562990740516645,
   ]);
@@ -148,98 +102,252 @@ const ShowMap = () => {
     }
   }, [zoomLevel]);
 
-  const fetchRoute = async () => {
-  const accessToken = 'pk.eyJ1IjoieW9uYXMxMyIsImEiOiJjbGZzZzZqd2YwNXRvM2VxcmdyMTc4MWg4In0.svu9-rLT7GOuHkrLA5Aejw';
-    //const origin = `${startLng},${startLat}`;
-    //const destination = `${destLng},${destLat}`;
-    const origin = [39.287087,8.565724];
-    const destination = [39.289035,8.560628];
-    const url = `https://api.mapbox.com/directions/v5/mapbox/walking/${origin};${destination}?access_token=${accessToken}&geometries=geojson`;
-    const response = await fetch(url);
-    const data = await response.json();
-    setRoute(data.routes[0]);
+  ////////////////////////////////////////////////////////////////////////////
+
+  // Use the useSelector hook to get the current state of Origin and Destination
+
+  const [Destination, setDestination] = useState(null);
+
+  const [currentPinCoordinate, setcurrentPinCoordinate] = useState([
+    39.290794776187056, 8.562069822199803,
+  ]);
+  const [routeGeoJSON, setrouteGeoJSON] = useState(null);
+  const [centerOfLineString, setcenterOfLineString] = useState();
+
+  const onDragEnd = async payload => {
+    const centerCoordinate = payload?.geometry?.coordinates;
+    setcurrentPinCoordinate(centerCoordinate);
+    console.log(centerCoordinate);
+
+    try {
+      const response = await fetch(
+        `https://api.mapbox.com/directions/v5/mapbox/walking/${UserLocation[0]},${UserLocation[1]};${centerCoordinate[0]},${centerCoordinate[1]}?` +
+          new URLSearchParams({
+            geometries: 'geojson',
+            access_token:
+              'pk.eyJ1IjoieW9uYXMxMyIsImEiOiJjbGZzZzZqd2YwNXRvM2VxcmdyMTc4MWg4In0.svu9-rLT7GOuHkrLA5Aejw',
+          }),
+      );
+      const data = await response.json();
+      const lineStringGeoJSON = {
+        type: 'FeatureCollection',
+        features: [
+          {
+            type: 'Feature',
+            properties: {},
+            geometry: data?.routes[0]?.geometry,
+          },
+        ],
+      };
+      setrouteGeoJSON(lineStringGeoJSON);
+
+      const allCoordinates =
+        lineStringGeoJSON?.features[0]?.geometry?.coordinates;
+      const featuresCenter = turf.points(allCoordinates);
+      const center = turf.center(featuresCenter);
+      setcenterOfLineString(center?.geometry?.coordinates);
+    } catch (error) {
+      console.error(error);
+    }
   };
+
+  // When `onSelectPoiFunc` is called with a selected POI, update the route based on the current pin and the selected POI
+  const onSelectPoi = async () => {
+    const coord = Destination;
+    if (coord == null) {
+      console.log('Destination not set');
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `https://api.mapbox.com/directions/v5/mapbox/walking/${UserLocation[0]},${UserLocation[1]};${coord[0]},${coord[1]}?` +
+          new URLSearchParams({
+            geometries: 'geojson',
+            access_token:
+              'pk.eyJ1IjoieW9uYXMxMyIsImEiOiJjbGZzZzZqd2YwNXRvM2VxcmdyMTc4MWg4In0.svu9-rLT7GOuHkrLA5Aejw',
+          }),
+      );
+      const data = await response.json();
+      const lineStringGeoJSON = {
+        type: 'FeatureCollection',
+        features: [
+          {
+            type: 'Feature',
+            properties: {},
+            geometry: data?.routes[0]?.geometry,
+          },
+        ],
+      };
+      //console.log(lineStringGeoJSON);
+      setrouteGeoJSON(lineStringGeoJSON);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const [centerCoordinate, setCenterCoordinate] = useState([
+    39.290794776187056, 8.562069822199803,
+  ]);
+  if (UserLocation) {
+    // If it is, set centerCoordinate equal to UserLocation
+    setCenterCoordinate(UserLocation);
+  }
+  const [UserLocation, setUserLocation] = useState(null);
+
+  const Route = useRoute();
+  useEffect(() => {
+    if (Route && Route.params && Route.params.route) {
+      const route = Route.params.route;
+      console.log(route);
+      setrouteGeoJSON(route);
+    }
+  }, []);
+  /////////////////////////////////////////////////////
+  useEffect(() => {
+    const options = {
+      enableHighAccuracy: true,
+      timeout: 20000,
+      maximumAge: 0,
+    };
+
+    const success = pos => {
+      const {latitude, longitude} = pos.coords;
+      setUserLocation([longitude, latitude]);
+    };
+
+    const error = err => {
+      console.warn(`ERROR(${err.code}): ${err.message}`);
+    };
+
+    const watchId = Geolocation.watchPosition(success, error, options);
+
+    return () => {
+      Geolocation.clearWatch(watchId);
+    };
+  }, []);
+  ///////////////////////////
+  const [centerpinCoordinate, setCenterpinCoordinate] = useState([
+    39.290794776187056, 8.562069822199803,
+  ]);
+
+  useEffect(() => {
+    // Set centerCoordinate to UserLocation if it's defined, otherwise set it to default coordinate
+    if (UserLocation) {
+      setCenterCoordinate(UserLocation);
+    } else {
+      setCenterpinCoordinate([39.290794776187056, 8.562069822199803]);
+    }
+  }, [UserLocation]);
+  ///////////////////////////////
   return (
-    <View style={styles.container}>
-      <MapboxGL.MapView
-        style={styles.mapbox}
-        styleURL={MapboxGL.StyleURL.Street}
-        centerCoordinate={coordinates[0]}
-        showUserLocation={true}
-        userTrackingMode={userSelectedUserTrackingMode}>
-        <MapboxGL.UserLocation
-          visible={true}
-          /*onUpdate={loc => {
-                        setLocation([loc.coords.longitude, loc.coords.latitude]);
-                    }}
-                    */
-        />
-        <MapboxGL.Camera
-          ref={cameraRef}
-          zoomLevel={zoomLevel}
-          animationMode={'flyTo'}
-          animationDuration={1100}
-          defaultSettings={defaultCamera}
-          maxZoomLevel={22}
-          minZoomLevel={4}
-          centerCoordinate={location}>
-          <MapboxGL.PointAnnotation
-            id="annotationExample"
-            coordinate={[39.2906, 8.5623]}
-            title="Title Example"
-            snippet="Snippet Example">
+    <SafeAreaProvider>
+      <View style={styles.container}>
+        <MapboxGL.MapView
+          style={styles.mapbox}
+          styleURL={
+            !isSateliteStyle
+              ? MapboxGL.StyleURL.Street
+              : MapboxGL.StyleURL.Satellite
+          }
+          centerCoordinate={centerpinCoordinate}
+          showUserLocation={true}
+          //onUserLocationUpdate={handleUserLocationUpdate}
+          userTrackingMode={userTrackingMode}
+          attributionEnabled={false}
+          rotateEnabled={false}>
+          <MapboxGL.UserLocation visible={true} animated={true} />
+          <PointAnnotation
+            key={1}
+            id={'1'}
+            title="StartingPoint"
+            coordinate={currentPinCoordinate}
+            draggable
+            onDragEnd={onDragEnd}
+            ref={pointAnnotation}>
             <View style={styles.annotationContainer}>
-              <View style={styles.annotationFill} />
+              <Image
+                source={images.icons[1]}
+                style={styles.imgStyle}
+                resizeMode="cover"
+                onLoad={() => pointAnnotation.current?.refresh()}
+              />
             </View>
-            <MapboxGL.Callout
-              title={'Welcome to Adama Science and Technology University'}
-            />
-          </MapboxGL.PointAnnotation>
-        </MapboxGL.Camera>
-        {route && (
-          <MapboxGL.ShapeSource id="routeSource" shape={route.geometry}>
-            <MapboxGL.LineLayer
-              id="routeFill"
-              style={{lineColor: 'purple', lineWidth: 4}}
-            />
-          </MapboxGL.ShapeSource>
-        )}
-      </MapboxGL.MapView>
-      <TouchableOpacity
-        style={styles.touchable}
-        onPress={() => handleSnapPress(0)}>
-        <Image
-          source={require('../assets/Navicon.png')}
-          style={styles.floatingButton}
-        />
-      </TouchableOpacity>
-      <View style={styles.touchableZoom}>
-        <TouchableOpacity onPress={increaseZoom}>
-          <Entypo name="plus" color="black" size={20} />
+          </PointAnnotation>
+          <MapboxGL.Camera
+            ref={cameraRef}
+            zoomLevel={zoomLevel}
+            animationMode={'flyTo'}
+            animationDuration={1100}
+            defaultSettings={defaultCamera}
+            maxZoomLevel={22}
+            minZoomLevel={10}
+            centerCoordinate={currentPinCoordinate}
+            //followUserMode={'normal'}
+            //followUserLocation
+          />
+          {routeGeoJSON && (
+            <MapboxGL.ShapeSource id="routeSource" shape={routeGeoJSON}>
+              <MapboxGL.LineLayer
+                id="routeFill"
+                style={{lineColor: 'purple', lineWidth: 4}}
+              />
+            </MapboxGL.ShapeSource>
+          )}
+        </MapboxGL.MapView>
+        <TouchableOpacity
+          style={styles.touchable}
+          onPress={() => handleSnapPress(0)}>
+          <Image source={images.pics[1]} style={styles.floatingButton} />
         </TouchableOpacity>
-        <TouchableOpacity onPress={decreaseZoom}>
-          <Entypo name="minus" color="black" size={20} />
+        <View style={styles.touchableZoom}>
+          <TouchableOpacity onPress={increaseZoom}>
+            <Entypo name="plus" color="black" size={20} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={decreaseZoom}>
+            <Entypo name="minus" color="black" size={20} />
+          </TouchableOpacity>
+        </View>
+        <BottomSheet
+          ref={bottomSheetRef}
+          snapPoints={snapPoints}
+          onStateChange={handleSheetChanges}
+          index={-1}
+          enablePanDownToClose={true}
+          onClose={() => setIsOpen(false)}
+          style={styles.bottomSheet}>
+          {isOpen && (
+            <View style={styles.contentContainer}>
+              <Text>Point on Map or Enter the place you want to go 🔍</Text>
+              <RouteInput
+                placeholderText="where from "
+                iconType="map-pin"
+                autoCorrect={true}
+              />
+              <RouteInput
+                placeholderText="where to [39.287132492278175, 8.565264636212788]"
+                iconType="flag-checkered"
+                autoCorrect={true}
+              />
+
+              <Text>Destination:{Destination}</Text>
+
+              <Button
+                title="Fetch route"
+                onPress={() => {
+                  setDestination([39.287132492278175, 8.565264636212788]);
+                  onSelectPoi();
+                }}
+              />
+            </View>
+          )}
+        </BottomSheet>
+        <TouchableOpacity style={styles.layerIcon} onPress={changeStyle}>
+          <Entypo name="layers" size={24} color="white" />
         </TouchableOpacity>
+        <BottomNavigation />
       </View>
-      <BottomSheet
-        ref={bottomSheetRef}
-        snapPoints={snapPoints}
-        onStateChange={handleSheetChanges}
-        index={-1}
-        enablePanDownToClose={true}
-        onClose={() => setIsOpen(false)}
-        style={styles.bottomSheet}>
-        {isOpen && (
-          <View style={styles.contentContainer}>
-            <Route />
-          </View>
-        )}
-      </BottomSheet>
-      <TouchableOpacity style={styles.layerIcon} onPress={changeStyle}>
-        <Entypo name="layers" size={24} color="white" />
-      </TouchableOpacity>
-      <Button title="Get Directions" onPress={fetchRoute} />
-    </View>
+    </SafeAreaProvider>
   );
 };
 
@@ -272,7 +380,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     right: 10,
-    bottom: 30,
+    bottom: '10%',
     backgroundColor: 'white',
     borderRadius: 25,
     //padding: 10,
@@ -306,5 +414,27 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
   },
+  annotationContainer: {
+    width: 30,
+    height: 30,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'white',
+    borderRadius: 15,
+  },
+  annotationFill: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'blue',
+    transform: [{scale: 0.6}],
+  },
+  imgStyle: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'stretch',
+    //backgroundColor:"purple",
+  },
 });
-export default ShowMap;
+
+export default RouteScreen;

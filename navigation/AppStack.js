@@ -7,6 +7,8 @@ import TabNavigator from './TabNavigator';
 import SearchScreen from '../screens/SearchScreen';
 import RouteScreen from '../screens/RouteScreen';
 import BottomSheet from '../screens/BottomSheet';
+import EventsScreen from '../screens/EventsScreen';
+import QRScreen from '../screens/QRScreen';
 
 
 const Stack = createStackNavigator();
@@ -36,8 +38,13 @@ const AppStack = () => {
         options={{header: () => null}}
       />
        <Stack.Screen
-        name="Bottom"
-        component={BottomSheet}
+        name="Events"
+        component={EventsScreen}
+        //options={{header: () => null}}
+      />
+       <Stack.Screen
+        name="QR"
+        component={QRScreen}
         //options={{header: () => null}}
       />
 
