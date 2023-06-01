@@ -1,81 +1,26 @@
-import {ScrollView, StyleSheet, Text, View} from 'react-native';
-import React from 'react';
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  TouchableOpacity,
+} from 'react-native';
+import React, {useState} from 'react';
 import {Icon} from '@rneui/themed';
 
 const QRScreen = () => {
+  const categories = ['All', 'Electronics', 'Clothing', 'Books'];
+
+  const [selectedCategory, setSelectedCategory] = useState('All');
+
+  const handleCategorySelection = category => {
+    setSelectedCategory(category);
+    // Perform search with selected category
+  };
   return (
     <View style={styles.container}>
       <Text>QRScreen</Text>
-      <View style={{position: 'absolute', bottom: '11%'}}>
-        <ScrollView 
-        horizontal
-        showsVerticalScrollIndicator={false}
-        showsHorizontalScrollIndicator={false}>
-          <View style={styles.tabContainer}>
-            <View style={styles.tabViews}>
-              <View style={[styles.tabIcon, {backgroundColor: 'orange'}]}>
-                <Icon
-                  name="restaurant"
-                  type="material"
-                  color="white"
-                  size={13}
-                />
-              </View>
-              <Text style={styles.containertext}>Where to eat</Text>
-            </View>
-            <View style={styles.tabViews}>
-              <View style={[styles.tabIcon, {backgroundColor: 'purple'}]}>
-                <Icon
-                  name="bunk-bed"
-                  type="material-community"
-                  color="white"
-                  size={13}
-                />
-              </View>
-              <Text style={styles.containertext}> Dormitories</Text>
-            </View>
-            <View style={styles.tabViews}>
-              <View style={[styles.tabIcon, {backgroundColor: 'gray'}]}>
-                <Icon
-                  name="wifi-marker"
-                  type="material-community"
-                  color="white"
-                  size={13}
-                />
-              </View>
-              <Text style={styles.containertext}>Wifi</Text>
-            </View>
-            <View style={styles.tabViews}>
-              <View style={[styles.tabIcon, {backgroundColor: 'turquoise'}]}>
-                <Icon name="shop" type="entypo" color="white"size={13} />
-              </View>
-              <Text style={styles.containertext}>Shops/groceries</Text>
-            </View>
-            <View style={styles.tabViews}>
-              <View style={[styles.tabIcon, {backgroundColor: 'navy'}]}>
-                <Icon
-                  name="office-building-marker"
-                  type="material-community"
-                  color="white"
-                  size={13}
-                />
-              </View>
-              <Text style={styles.containertext}>Department and schools</Text>
-            </View>
-            <View style={styles.tabViews}>
-              <View style={[styles.tabIcon, {backgroundColor: 'maroon'}]}>
-                <Icon
-                  name="bookshelf"
-                  type="material-community"
-                  color="white"
-                  size={13}
-                />
-              </View>
-              <Text style={styles.containertext}>Libraries</Text>
-            </View>
-          </View>
-        </ScrollView>
-      </View>
+      <View></View>
     </View>
   );
 };
@@ -106,7 +51,7 @@ const styles = StyleSheet.create({
     marginLeft: 6,
     marginRight: 6,
     paddingTop: 2,
-    paddingBottom:2,
+    paddingBottom: 2,
     paddingLeft: 8,
     paddingRight: 8,
     backgroundColor: 'white',
@@ -130,4 +75,5 @@ const styles = StyleSheet.create({
     backgroundColor: 'silver',
     padding: 3,
   },
+
 });

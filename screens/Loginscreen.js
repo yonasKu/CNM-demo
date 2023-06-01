@@ -64,11 +64,13 @@ const styles = StyleSheet.create({
     //color:#ffff
   },
   logo: {
-    height: 150,
-    width: 150,
-    borderRadius: 150/2,
+    height: 120,
+    width: 120,
+
+    //borderRadius: 150/2,
     resizeMode: 'contain',
-    backgroundColor:'#fff'
+    backgroundColor:'transparent',
+    
   },
   text: {
     fontFamily: 'Kufam-SemiBoldItalic',

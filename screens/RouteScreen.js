@@ -9,20 +9,25 @@ import {
   Image,
   Text,
 } from 'react-native';
-import MapboxGL, {Camera, PointAnnotation, MarkerView} from '@rnmapbox/maps';
 import Entypo from 'react-native-vector-icons/Entypo';
-
+import MapboxGL, {
+  Camera,
+  PointAnnotation,
+  MarkerVieW,
+  Images,
+} from '@rnmapbox/maps';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
 
 import RouteInput from '../components/RouteInput';
 import BottomSheet from '@gorhom/bottom-sheet';
-import {images} from '../components/Images';
+import {images, navicon} from '../components/Images';
 import * as turf from '@turf/turf';
 import {MAP_BOX_ACCESS_TOKEN} from '../utils/constants/constants';
 import {useRoute} from '@react-navigation/native';
 import Geolocation from 'react-native-geolocation-service';
 import {Icon} from '@rneui/themed';
 import BottomNavigation from '../components/BottomNavigation';
+import MarkersCard from '../components/MarkersCard';
 
 const IS_ANDROID = Platform.OS === 'android';
 
@@ -36,7 +41,6 @@ const RouteScreen = () => {
 
   const [isSateliteStyle, setSateliteStyle] = useState(false);
   const defaultCamera = {
-    //centerCoordinate: [39.29067144628581, 8.562990740516645],
     zoomLevel: 15,
   };
   const [zoomLevel, setZoomLevel] = useState(defaultCamera.zoomLevel);
@@ -59,6 +63,9 @@ const RouteScreen = () => {
   const [userSelectedUserTrackingMode] = useState(
     MapboxGL.UserTrackingModes.Follow,
   );
+
+  const [Userdestination, setUserdestination] = useState(null)
+
 
   const handleSheetChanges = useCallback(index => {
     console.log(index);
@@ -193,13 +200,13 @@ const RouteScreen = () => {
     // If it is, set centerCoordinate equal to UserLocation
     setCenterCoordinate(UserLocation);
   }
-  const [UserLocation, setUserLocation] = useState(null);
+  const [UserLocation, setUserLocation] = useState([]);
 
   const Route = useRoute();
   useEffect(() => {
     if (Route && Route.params && Route.params.route) {
       const route = Route.params.route;
-      console.log(route);
+      //console.log(route);
       setrouteGeoJSON(route);
     }
   }, []);
@@ -240,6 +247,7 @@ const RouteScreen = () => {
     }
   }, [UserLocation]);
   ///////////////////////////////
+  
   return (
     <SafeAreaProvider>
       <View style={styles.container}>
@@ -298,7 +306,7 @@ const RouteScreen = () => {
         <TouchableOpacity
           style={styles.touchable}
           onPress={() => handleSnapPress(0)}>
-          <Image source={images.pics[1]} style={styles.floatingButton} />
+          <Image source={navicon} style={styles.floatingButton} />
         </TouchableOpacity>
         <View style={styles.touchableZoom}>
           <TouchableOpacity onPress={increaseZoom}>
@@ -308,6 +316,10 @@ const RouteScreen = () => {
             <Entypo name="minus" color="black" size={20} />
           </TouchableOpacity>
         </View>
+        {/*<BottomNavigation />                                    */}
+        <TouchableOpacity style={styles.layerIcon} onPress={changeStyle}>
+          <Entypo name="layers" size={24} color="white" />
+        </TouchableOpacity>
         <BottomSheet
           ref={bottomSheetRef}
           snapPoints={snapPoints}
@@ -320,7 +332,7 @@ const RouteScreen = () => {
             <View style={styles.contentContainer}>
               <Text>Point on Map or Enter the place you want to go 🔍</Text>
               <RouteInput
-                placeholderText="where from "
+                placeholderText="user location"
                 iconType="map-pin"
                 autoCorrect={true}
               />
@@ -328,9 +340,12 @@ const RouteScreen = () => {
                 placeholderText="where to [39.287132492278175, 8.565264636212788]"
                 iconType="flag-checkered"
                 autoCorrect={true}
+                labelValue={Userdestination}
+                onChangeText={(inputText) => setUserdestination(inputText)}
               />
-
+              
               <Text>Destination:{Destination}</Text>
+              <Text>Destination:{Userdestination}</Text>
 
               <Button
                 title="Fetch route"
@@ -342,10 +357,7 @@ const RouteScreen = () => {
             </View>
           )}
         </BottomSheet>
-        <TouchableOpacity style={styles.layerIcon} onPress={changeStyle}>
-          <Entypo name="layers" size={24} color="white" />
-        </TouchableOpacity>
-        <BottomNavigation />
+        
       </View>
     </SafeAreaProvider>
   );
@@ -434,6 +446,9 @@ const styles = StyleSheet.create({
     height: '100%',
     resizeMode: 'stretch',
     //backgroundColor:"purple",
+  },
+  contentContainer: {
+    flex: 1,
   },
 });
 

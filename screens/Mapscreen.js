@@ -1,5 +1,10 @@
-import React, {useRef, useState, useEffect} from 'react';
-import MapboxGL, {Camera, PointAnnotation, MarkerView} from '@rnmapbox/maps';
+import React, {useRef, useState, useEffect, useCallback} from 'react';
+import MapboxGL, {
+  Camera,
+  PointAnnotation,
+  MarkerVieW,
+  Images,
+} from '@rnmapbox/maps';
 import Geolocation from 'react-native-geolocation-service';
 import {
   Button,
@@ -18,6 +23,10 @@ import {SafeAreaProvider} from 'react-native-safe-area-context';
 import {MAP_BOX_ACCESS_TOKEN} from '../utils/constants/constants';
 import BottomNavigation from '../components/BottomNavigation';
 import {Icon} from '@rneui/themed';
+import {DataMarkers} from '../components/data';
+import BottomSheet from '@gorhom/bottom-sheet';
+import DetailsCard from '../components/DetailsCard';
+
 MapboxGL.setAccessToken(MAP_BOX_ACCESS_TOKEN);
 
 const requestLocationPermission = async () => {
@@ -54,6 +63,8 @@ const Mapscreen = () => {
   const [isSateliteStyle, setSateliteStyle] = useState(false);
   const defaultCamera = {
     centerCoordinate: [39.29067144628581, 8.562990740516645],
+    //pitch: 0,
+    //heading: 0,
     zoomLevel: 15,
   };
   const [zoomLevel, setZoomLevel] = useState(defaultCamera.zoomLevel);
@@ -86,7 +97,7 @@ const Mapscreen = () => {
       }
     });
   };
-  console.log();
+
   const changeStyle = () => {
     setSateliteStyle(!isSateliteStyle);
   };
@@ -104,21 +115,87 @@ const Mapscreen = () => {
 
   useEffect(() => {
     // Only set camera once
-    if (mapViewRef.current && cameraRef.current) {
-      mapViewRef.current.setCamera({
+    if (cameraRef.current) {
+      cameraRef.current.setCamera({
         ...defaultCamera,
         zoomLevel: zoomLevel,
       });
     }
   }, [zoomLevel]);
+  /////////////////////////////////////////////////////////////////////////////////////
 
+  const [Marker, setMarker] = useState(DataMarkers);
+
+  const [selectedMarker, setSelectedMarker] = useState(null);
+  const [showIcons, setShowIcons] = useState(false);
+  //types = ['Where to eat', 'Dormitories', 'Wifi','Libraries']
+
+  const [selectedType, setSelectedType] = useState('null');
+
+  const filteredMarkers = Marker.filter(marker => marker.type === selectedType);
+
+  const featureCollection = {
+    type: 'FeatureCollection',
+    features: filteredMarkers.map(marker => ({
+      type: 'Feature',
+      geometry: {
+        type: 'Point',
+        coordinates: marker.coordinates,
+      },
+      properties: {
+        title: marker.title,
+        description: marker.description,
+        id: marker.id,
+        coordinate: marker.coordinates,
+      },
+    })),
+  };
+  
+  const symbolLayerStyle = {
+    iconAllowOverlap: true,
+    //iconAnchor: 'bottom',
+    iconSize: 0.75,
+    iconImage: 'foo',
+    textSize: 12, // adjust the offset of the text to show the callout properly
+    textAllowOverlap: true,
+  };
+
+  const handlepoints = types => {
+    setSelectedType(types), setShowIcons(true);
+  };
+  const handleMarkerPress = event => {
+    const {properties} = event.features[0];
+    setSelectedMarker(properties);
+  };
+  //////////////////////////////////////////////////////////////////////////
+
+  const bottomSheetRef = useRef(null);
+  const [isOpen, setIsOpen] = useState(false);
+  const [snapPoints] = useState(['35%', '50%']);
+
+  const handleSheetChanges = useCallback(index => {
+    console.log(index);
+  }, []);
+
+  const handleSnapPress = useCallback(index => {
+    setIsOpen(true);
+    bottomSheetRef.current?.snapToIndex(index);
+  }, []);
+  //,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,  ......
+
+  const [selectedPin, setSelectedPin] = useState(null);
+
+  const handlePinPress = event => {
+    const feature = event.features[0];
+    setSelectedPin(feature.properties);
+    handleSnapPress(1);
+  };
+  //console.log(selectedPin);
+  //,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+  ///////////////////////////////////////////////////////////////////////////////////////////////////////
   return (
     <SafeAreaProvider>
       <View style={styles.page}>
-        <View
-          style={{marginTop: 10, padding: 10, borderRadius: 10, width: '40%'}}>
-          <Button title="Get Location" onPress={getLocation} />
-        </View>
         <View style={styles.container}>
           <MapboxGL.MapView
             ref={mapViewRef}
@@ -138,12 +215,47 @@ const Mapscreen = () => {
               zoomLevel={zoomLevel}
               animationMode={'flyTo'}
               animationDuration={1100}
-              //centerCoordinate={centerCoordinate}
               defaultSettings={defaultCamera}
               maxZoomLevel={22}
               minZoomLevel={4}
             />
-            {/* The following annotation will be displayed in the specified coordinate */}
+
+            <Images images={{foo: require('../assets/icons/pin.png')}} />
+            {showIcons && (
+              <MapboxGL.ShapeSource
+                id="mapPinsSource"
+                shape={featureCollection}
+                onPress={handlePinPress}>
+                <MapboxGL.SymbolLayer
+                  id="mapPinsLayer"
+                  style={symbolLayerStyle}></MapboxGL.SymbolLayer>
+              </MapboxGL.ShapeSource>
+            )}
+
+            {/*
+            {filteredMarkers.map(marker => (
+              <MapboxGL.PointAnnotation
+                key={marker.id}
+                id={marker.id}
+                coordinate={marker.coordinates}
+                onSelected={() => setSelectedMarker(marker)}>
+                <MapboxGL.Callout style={styles.calloutContainer}>
+                  <View style={{backgroundColor: 'white'}}>
+                    <Text style={styles.calloutTitle}>{marker.title}</Text>
+                    <Text style={styles.calloutDescription}>
+                      {marker.description}
+                    </Text>
+                    <TouchableOpacity
+                      style={styles.calloutButton}
+                      >
+                      <Text style={styles.calloutButtonText}>Press me</Text>
+                    </TouchableOpacity>
+                  </View>
+                </MapboxGL.Callout>
+              </MapboxGL.PointAnnotation>
+            ))}
+
+            */}
             <MapboxGL.PointAnnotation
               id="annotationExample"
               coordinate={[39.2906, 8.5623]}
@@ -171,79 +283,35 @@ const Mapscreen = () => {
             <Entypo name="layers" size={24} color="white" />
           </TouchableOpacity>
           {/* .............,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,*/}
-          <View style={{position: 'absolute', bottom: '1%'}}>
-            <ScrollView
-              showsVerticalScrollIndicator={false}
-              showsHorizontalScrollIndicator={false}
-              horizontal>
-              <View style={styles.tabContainer}>
-                <View style={styles.tabViews}>
-                  <View style={[styles.tabIcon, {backgroundColor: 'orange'}]}>
-                    <Icon
-                      name="restaurant"
-                      type="material"
-                      color="white"
-                      size={13}
+          <BottomNavigation handlepoints={handlepoints} />
+          {/* .............,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,*/}
+          <BottomSheet
+            ref={bottomSheetRef}
+            snapPoints={snapPoints}
+            onStateChange={handleSheetChanges}
+            index={-1}
+            enablePanDownToClose={true}
+            onClose={() => setIsOpen(false)}
+            style={styles.bottomSheet}>
+            {isOpen && (
+              <View>
+                <ScrollView
+
+                  style={{
+                    backgroundColor: 'gray',
+                  }}>
+                    <DetailsCard
+                    key={selectedPin.id}
+                    name={selectedPin.title}
+                    description={selectedPin.description}
+                    //place={selectedPin.title}
+                    coordinate={selectedPin.coordinate}
                     />
-                  </View>
-                  <Text style={styles.containertext}>Where to eat</Text>
-                </View>
-                <View style={styles.tabViews}>
-                  <View style={[styles.tabIcon, {backgroundColor: 'purple'}]}>
-                    <Icon
-                      name="bunk-bed"
-                      type="material-community"
-                      color="white"
-                      size={13}
-                    />
-                  </View>
-                  <Text style={styles.containertext}> Dormitories</Text>
-                </View>
-                <View style={styles.tabViews}>
-                  <View style={[styles.tabIcon, {backgroundColor: 'gray'}]}>
-                    <Icon
-                      name="wifi-marker"
-                      type="material-community"
-                      color="white"
-                      size={13}
-                    />
-                  </View>
-                  <Text style={styles.containertext}>Wifi</Text>
-                </View>
-                <View style={styles.tabViews}>
-                  <View
-                    style={[styles.tabIcon, {backgroundColor: 'turquoise'}]}>
-                    <Icon name="shop" type="entypo" color="white" size={13} />
-                  </View>
-                  <Text style={styles.containertext}>Shops/groceries</Text>
-                </View>
-                <View style={styles.tabViews}>
-                  <View style={[styles.tabIcon, {backgroundColor: 'navy'}]}>
-                    <Icon
-                      name="office-building-marker"
-                      type="material-community"
-                      color="white"
-                      size={13}
-                    />
-                  </View>
-                  <Text style={styles.containertext}>
-                    Department and schools
-                  </Text>
-                </View>
-                <View style={styles.tabViews}>
-                  <View style={[styles.tabIcon, {backgroundColor: 'maroon'}]}>
-                    <Icon
-                      name="bookshelf"
-                      type="material-community"
-                      color="white"
-                      size={13}
-                    />
-                  </View>
-                  <Text style={styles.containertext}>Libraries</Text>
-                </View>
+                  </ScrollView>
               </View>
-            </ScrollView>
-          </View>
+            )}
+          </BottomSheet>
+          
           {/* .............,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,*/}
         </View>
       </View>
@@ -256,6 +324,8 @@ export default Mapscreen;
 const styles = StyleSheet.create({
   page: {
     flex: 1,
+    marginTop:15,
+    paddingTop:5,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -348,4 +418,61 @@ const styles = StyleSheet.create({
     padding: 3,
   },
   /////////////////////////////////////////////////////////////////////////////////////
+
+  calloutContainer: {
+    width: 200,
+  },
+  calloutTitle: {
+    fontWeight: 'bold',
+    fontSize: 16,
+    marginBottom: 4,
+  },
+  calloutDescription: {
+    fontSize: 14,
+    marginBottom: 8,
+  },
+  calloutButton: {
+    backgroundColor: '#007AFF',
+    padding: 8,
+    borderRadius: 8,
+  },
+  calloutButtonText: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+    fontSize: 14,
+    textAlign: 'center',
+  },
+  ////////////////////////////////////////////////////////////////////////////////////////////////
+  ContentContainer: {
+    flex: 1,
+    //alignItems: 'center',
+    backgroundColor: 'white',
+    padding: 8,
+    borderRadius: 15,
+    margin: 5,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  desriptionsContainer: {
+    padding: 5,
+  },
+  nameContainer: {
+    padding: 5,
+    borderBottomWidth: 0.5,
+    //borderTopLeftRadius: 10,
+  },
+  cardTextContainer: {
+    //backgroundColor: '#D9CECA',
+    backgroundColor: 'silver',
+    width: '100%',
+    alignItems: 'center',
+    borderTopLeftRadius: 10,
+    borderTopRightRadius: 10,
+  },
 });

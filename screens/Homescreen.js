@@ -1,4 +1,4 @@
-import {StyleSheet, View, ScrollView, Image} from 'react-native';
+import {StyleSheet, View, ScrollView,Image} from 'react-native';
 
 import React, {useContext, useRef, useState} from 'react';
 import {AuthContext} from '../navigation/AuthProvider';
@@ -62,9 +62,9 @@ const Homescreen = ({navigation}) => {
           <View style={{paddingTop: 20, paddingBottom: 10}}>
             <Tile
               imageSrc={{
-                uri: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d6/Half_Dome_from_Glacier_Point%2C_Yosemite_NP_-_Diliff.jpg/320px-Half_Dome_from_Glacier_Point%2C_Yosemite_NP_-_Diliff.jpg',
+                uri: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d6/Half_Dome_from_Glacier_Point%2C_Yosemite_NP_-_Diliff.jpg/320px-Half_Dome_from_Glacier_Point%2C_Yosemite_NP_-_Diliff.jpg'
               }}
-              title="This is full campus navigation using images "
+              title="This is Full Campus Navigation using images "
               titleStyle={{fontSize: 20, textAlign: 'center', paddingBottom: 5}}
               featured
               activeOpacity={1}

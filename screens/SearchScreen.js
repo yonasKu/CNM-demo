@@ -6,6 +6,7 @@ import {
   TextInput,
   ActivityIndicator,
   FlatList,
+  TouchableOpacity,
 } from 'react-native';
 import React, {useEffect, useState} from 'react';
 import Feather from 'react-native-vector-icons/Feather';
@@ -14,14 +15,18 @@ import {windowHeight} from '../utils/dimensions';
 import filter from 'lodash.filter';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
 
+
+
 const API_ENDPOINT = `https://randomuser.me/api/?results=30`;
 
 const SearchScreen = () => {
+
   const [isLoading, setIsloading] = useState('false');
   const [data, setData] = useState([]);
   const [error, setError] = useState(null);
   const [fullData, setFulldata] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
+  
   useEffect(() => {
     setIsloading(true);
     fetchData(API_ENDPOINT);
@@ -101,13 +106,13 @@ const SearchScreen = () => {
                 source={{uri: item.picture.thumbnail}}
                 style={styles.image}
               />
-              <View>
+              <TouchableOpacity>
                 <Text style={styles.textName}>
                   {item.name.first}
                   {item.name.last}
                 </Text>
                 <Text style={styles.textEmail}>{item.email}</Text>
-              </View>
+              </TouchableOpacity>
             </View>
           )}
         />
@@ -148,9 +153,9 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   image: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    width: 75,
+    height: 75,
+    
   },
   textName: {
     fontSize: 22,
