@@ -16,51 +16,30 @@ import Geolocation from 'react-native-geolocation-service';
 
 //<Icon name="event" type="MaterialIcons" color="#517fa4" />
 
-const DetailsCard = ({name, description, place,coordinate}) => {
+const DetailsCard = ({name, description, place,coordinate,userLocation}) => {
   const navigation = useNavigation();
 
 
 
   const handleRoutePress = async coord => {
-    if (UserLocation.length === 0) {
+    if (userLocation.length === 0) {
       alert(
         'Could not fetch your location. Please turn your location on  or try again.',
       );
       return;
     }
     // Call fetchRoute with the origin and destination variables
-    const route = await fetchRoute(UserLocation, coord);
+    const route = await fetchRoute(userLocation, coord);
     navigation.navigate('Route', {route});
-    console.log(UserLocation, coord);
+    console.log(userLocation, coord);
     //console.log(route);
   };
-  const [UserLocation, setUserLocation] = useState([]);
 
+  //const [userLocation, setUserLocation] = useState([]);
+  
+  console.log(userLocation);
+//console.log(coordinate);
 
-  useEffect(() => {
-    const options = {
-      enableHighAccuracy: true,
-      timeout: 20000,
-      maximumAge: 0,
-    };
-
-    const success = pos => {
-      const {latitude, longitude} = pos.coords;
-      setUserLocation([longitude, latitude]);
-    };
-
-    const error = err => {
-      console.warn(`ERROR(${err.code}): ${err.message}`);
-    };
-
-    const watchId = Geolocation.watchPosition(success, error, options);
-
-    return () => {
-      Geolocation.clearWatch(watchId);
-    };
-  }, []);
-console.log(coordinate);
-console.log(UserLocation)
   return (
     <View>
       <View>

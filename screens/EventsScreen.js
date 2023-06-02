@@ -15,121 +15,112 @@ import {TouchableOpacity} from 'react-native-gesture-handler';
 import {useSelector, useDispatch} from 'react-redux';
 // Import the Redux actions and selectors
 
-import {useIsFocused, useNavigation} from '@react-navigation/native';
+import {useNavigation} from '@react-navigation/native';
 
 import {fetchRoute} from '../utils/Routeutils';
 import Geolocation from 'react-native-geolocation-service';
 import EventsCard from '../components/EventsCard';
+import {getCurrentLocation} from '../utils/helperFunction';
 
+const specificRoutesData = [
+  {
+    id: '1',
+    name: 'Routes for lost id',
+    type: 'Routes',
+    coord: [39.287087, 8.565724],
+  },
+
+  {
+    id: '2',
+    name: 'Routes for Cafeterias',
+    type: 'Cafeterias',
+    coord: [39.28717624155462, 8.55942498457398],
+  },
+  {
+    id: '3',
+    name: 'Routes for Lounges',
+    type: 'Lounges',
+    coord: [39.28717624155462, 8.55942498457398],
+  },
+  {
+    id: '4',
+    name: 'Routes for Lounges',
+    type: 'Lounges',
+    coord: [39.28653660049278, 8.564240411708141],
+  },
+];
+
+const eventRoutesData = [
+  {
+    id: '1',
+    name: 'Seminar',
+    description:
+      'Lorem ipsum dolor sit, amet consectetur adipisicing elit. Sunt odio repellat doloremque velit dolores magni eligendi rerum id. Ducimus, temporibus!',
+    location: 'Astucafe',
+    coordinate: [39.29008436747529, 8.565548313166687],
+  },
+  {
+    id: '2',
+    name: 'Workshop',
+    description:
+      'Lorem ipsum dolor sit, amet consectetur adipisicing elit. Sunt odio repellat doloremque velit dolores magni eligendi rerum id. Ducimus, temporibus!',
+    location: 'Astu cafe 1',
+    coordinate: [39.29011990176903, 8.564742934216113],
+  },
+  {
+    id: '3',
+    name: 'Venue',
+    description:
+      'Lorem ipsum dolor sit, amet consectetur adipisicing elit. Sunt odio repellat doloremque velit dolores magni eligendi rerum id. Ducimus, temporibus!',
+    location: 'Astu stadium',
+    coordinate: [39.29465521852066, 8.565422352277835],
+  },
+  {
+    id: '4',
+    name: 'meeting',
+    description:
+      'Lorem ipsum dolor sit, amet consectetur adipisicing elit. Sunt odio repellat doloremque velit dolores magni eligendi rerum id. Ducimus, temporibus!',
+    location: 'Astu cafe 2',
+    coordinate: [39.29127157525488, 8.564631397835498],
+  },
+];
 const EventsScreen = () => {
-  
-  const specificRoutesData = [
-    {
-      id: '1',
-      name: 'Routes for lost id',
-      type: 'Routes',
-      coord: [39.287087, 8.565724],
-    },
-
-    {
-      id: '2',
-      name: 'Routes for Cafeterias',
-      type: 'Cafeterias',
-      coord: [39.28717624155462, 8.55942498457398],
-    },
-    {
-      id: '3',
-      name: 'Routes for Lounges',
-      type: 'Lounges',
-      coord: [39.28717624155462, 8.55942498457398],
-    },
-    {
-      id: '4',
-      name: 'Routes for Lounges',
-      type: 'Lounges',
-      coord: [39.28653660049278, 8.564240411708141],
-    },
-  ];
-
-  const eventRoutesData = [
-    {
-      id: '1',
-      name: 'Seminar',
-      description:
-        'Lorem ipsum dolor sit, amet consectetur adipisicing elit. Sunt odio repellat doloremque velit dolores magni eligendi rerum id. Ducimus, temporibus!',
-      location: 'Astucafe',
-      coordinate :[39.29008436747529, 8.565548313166687]
-    },
-    {
-      id: '2',
-      name: 'Workshop',
-      description:
-        'Lorem ipsum dolor sit, amet consectetur adipisicing elit. Sunt odio repellat doloremque velit dolores magni eligendi rerum id. Ducimus, temporibus!',
-      location: 'Astu cafe 1',
-      coordinate :[39.29011990176903, 8.564742934216113]
-    },
-    {
-      id: '3',
-      name: 'Venue',
-      description:
-        'Lorem ipsum dolor sit, amet consectetur adipisicing elit. Sunt odio repellat doloremque velit dolores magni eligendi rerum id. Ducimus, temporibus!',
-      location: 'Astu stadium',
-      coordinate :[39.29465521852066, 8.565422352277835]
-    },
-    {
-      id: '4',
-      name: 'meeting',
-      description:
-        'Lorem ipsum dolor sit, amet consectetur adipisicing elit. Sunt odio repellat doloremque velit dolores magni eligendi rerum id. Ducimus, temporibus!',
-      location: 'Astu cafe 2',
-      coordinate :[39.29127157525488, 8.564631397835498]
-    },
-  ];
-
   const [expanded1, setExpanded1] = useState(false);
   const [expanded2, setExpanded2] = useState(false);
 
-  const [UserLocation, setUserLocation] = useState([]);
+  // const [UserLocation, setUserLocation] = useState([]);
 
-  const isFocused = useIsFocused();
-
-  useEffect(() => {
-    const options = {
-      enableHighAccuracy: true,
-      timeout: 20000,
-      maximumAge: 0,
-    };
-
-    const success = pos => {
-      const {latitude, longitude} = pos.coords;
-      setUserLocation([longitude, latitude]);
-    };
-
-    const error = err => {
-      console.warn(`ERROR(${err.code}): ${err.message}`);
-    };
-
-    const watchId = Geolocation.watchPosition(success, error, options);
-
-    return () => {
-      Geolocation.clearWatch(watchId);
-    };
-  }, []);
-
-console.log(UserLocation)
   const navigation = useNavigation();
 
+  const [userLocation, setUserLocation] = useState([39.289615, 8.5641967]);
+
+  useEffect(() => {
+    getCurrentLocation()
+      .then(location => {
+        console.log('Latitude:', location.latitude);
+        console.log('Longitude:', location.longitude);
+        console.log('Heading:', location.heading);
+        setUserLocation([location.longitude, location.latitude]);
+      })
+      .catch(error => {
+        console.error('Error obtaining current location:', error);
+        //alert('Error obtaining current location:', error);
+      });
+  }, []);
+
+  console.log(userLocation);
+
   const handleRoutePress = async coord => {
-    if (UserLocation.length === 0) {
+    if (userLocation.length === 0) {
       alert(
         'Could not fetch your location. Please turn your location on  or try again.',
       );
       return;
     }
     // Call fetchRoute with the origin and destination variables
-    const route = await fetchRoute(UserLocation, coord);
+    const route = await fetchRoute(userLocation, coord);
     navigation.navigate('Route', {route});
-    console.log(UserLocation, coord);
+    console.log(userLocation, coord);
     //console.log(route);
   };
   // Use the useDispatch hook to get the Redux dispatch function
@@ -176,11 +167,18 @@ console.log(UserLocation)
                           handleRoutePress(item.coord);
                         }}>
                         <ListItem.Content>
-                          <View style={{marginLeft:45}}>
-                          <Text style={{color:'white',fontWeight:'bold',fontSize:15}}>{item.name}</Text>
+                          <View style={{marginLeft: 45}}>
+                            <Text
+                              style={{
+                                color: 'white',
+                                fontWeight: 'bold',
+                                fontSize: 15,
+                              }}>
+                              {item.name}
+                            </Text>
                           </View>
-                          <View style={{marginLeft:75,}}>
-                          <Text>{item.type}</Text>
+                          <View style={{marginLeft: 75}}>
+                            <Text>{item.type}</Text>
                           </View>
                         </ListItem.Content>
                       </TouchableOpacity>
@@ -222,7 +220,7 @@ console.log(UserLocation)
                     coord={item.coordinate}
                     handleRoutePress={handleRoutePress}
                   />
-                </View> 
+                </View>
               ))}
             </ListItem.Accordion>
           </View>
@@ -241,7 +239,6 @@ const styles = StyleSheet.create({
     //padding: 10,
   },
   SpeRouteholder: {
-
     padding: 5,
     marginRight: 20,
   },
@@ -259,7 +256,6 @@ const styles = StyleSheet.create({
     //backgroundColor: 'white'
   },
   touchcontain: {
-    
     padding: 5,
     width: 225,
     borderRadius: 15,

@@ -18,6 +18,7 @@ import {
   Avatar,
 } from '@rneui/themed';
 import Navoptions from '../components/NavOptions';
+import { windowWidth } from '../utils/dimensions';
 
 const Homescreen = ({navigation}) => {
   //const navigation =useNavigation();
@@ -68,16 +69,8 @@ const Homescreen = ({navigation}) => {
               titleStyle={{fontSize: 20, textAlign: 'center', paddingBottom: 5}}
               featured
               activeOpacity={1}
-              width={310}>
-              <View
-                style={{
-                  flex: 1,
-                  flexDirection: 'row',
-                  justifyContent: 'space-between',
-                }}>
-                <Text style={{color: 'green'}}>Visit</Text>
-                <Text style={{color: '#397af8'}}>Find out More</Text>
-              </View>
+              width={windowWidth-15}>
+           
             </Tile>
           </View>
           <View>

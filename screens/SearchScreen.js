@@ -77,7 +77,7 @@ const SearchScreen = () => {
   if (error) {
     return (
       <View style={{flex: 1, justifyContent: 'center', alignItems: 'center'}}>
-        <Text style={{color: 'red', fontsize: 20, textAlign: 'center'}}>
+        <Text >
           Error in fetching data ... please check your internet connection!
         </Text>
       </View>

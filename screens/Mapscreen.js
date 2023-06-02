@@ -26,10 +26,13 @@ import {Icon} from '@rneui/themed';
 import {DataMarkers} from '../components/data';
 import BottomSheet from '@gorhom/bottom-sheet';
 import DetailsCard from '../components/DetailsCard';
+import {getCurrentLocation} from '../utils/helperFunction';
+import {get} from 'react-native/Libraries/TurboModule/TurboModuleRegistry';
 
 MapboxGL.setAccessToken(MAP_BOX_ACCESS_TOKEN);
 
-const requestLocationPermission = async () => {
+{
+  /*const requestLocationPermission = async () => {
   try {
     const granted = await PermissionsAndroid.request(
       PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
@@ -54,6 +57,10 @@ const requestLocationPermission = async () => {
     return false;
   }
 };
+*/
+}
+
+// Call requestLocationPermission()
 
 const Mapscreen = () => {
   const mapViewRef = useRef(null);
@@ -71,32 +78,65 @@ const Mapscreen = () => {
   const [location, setLocation] = useState(false);
 
   // function to check permissions and get Location
-  const getLocation = () => {
-    const result = requestLocationPermission();
-    result.then(res => {
-      console.log('res is:', res);
-      if (res) {
-        Geolocation.getCurrentPosition(
-          position => {
-            console.log(position);
-            setLocation(position);
-            mapViewRef.current.setCamera({
-              centerCoordinate: [
-                position.coords.longitude,
-                position.coords.latitude,
-              ],
-              zoom: 15,
-            });
-          },
-          error => {
-            console.log(error.code, error.message);
-            setLocation(false);
-          },
-          {enableHighAccuracy: true, timeout: 15000, maximumAge: 10000},
-        );
+  const [userLocation, setUserLocation] = useState(null);
+
+  useEffect(() => {
+    checkPermissions();
+  }, []);
+
+  const checkPermissions = async () => {
+    if (Platform.OS === 'android') {
+      const granted = await PermissionsAndroid.request(
+        PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+        {
+          title: 'Allow Location Access',
+          message:
+            'App needs access to your device location in order to show nearby places.',
+          buttonNeutral: 'Ask Me Later',
+          buttonNegative: 'Cancel',
+          buttonPositive: 'OK',
+        },
+      );
+      if (granted === PermissionsAndroid.RESULTS.GRANTED) {
+      } else {
+        console.log('Location permission denied');
       }
-    });
+    } else {
+      // If we're on IOS, no need to check for location permission
+    }
   };
+
+  const getCurrentLocation = async () => {
+    try {
+      const location = await new Promise((resolve, reject) => {
+        Geolocation.getCurrentPosition(
+          position => resolve(position),
+          error => reject(error),
+          { enableHighAccuracy: true, timeout: 20000, maximumAge: 1000 },
+        );
+      });
+      console.log('Latitude:', location.coords.latitude);
+      console.log('Longitude:', location.coords.longitude);
+      console.log('Heading:', location.coords.heading);
+      setUserLocation([location.coords.longitude, location.coords.latitude]);
+    } catch (error) {
+      console.error('Error obtaining current location:', error);
+      //alert('Error obtaining current location:', error);
+    }
+  };
+  
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      getCurrentLocation();
+      setTimeout(getCurrentLocation, 9000);
+    }, 9000);
+  
+    return () => clearTimeout(timeout);
+  }, []);
+  
+  console.log('UserLocation:', userLocation);
+  
+  /////////////////////////////////////////////////
 
   const changeStyle = () => {
     setSateliteStyle(!isSateliteStyle);
@@ -150,7 +190,7 @@ const Mapscreen = () => {
       },
     })),
   };
-  
+
   const symbolLayerStyle = {
     iconAllowOverlap: true,
     //iconAnchor: 'bottom',
@@ -296,22 +336,22 @@ const Mapscreen = () => {
             {isOpen && (
               <View>
                 <ScrollView
-
                   style={{
                     backgroundColor: 'gray',
                   }}>
-                    <DetailsCard
+                  <DetailsCard
                     key={selectedPin.id}
                     name={selectedPin.title}
                     description={selectedPin.description}
                     //place={selectedPin.title}
                     coordinate={selectedPin.coordinate}
-                    />
-                  </ScrollView>
+                    userLocation={userLocation}
+                  />
+                </ScrollView>
               </View>
             )}
           </BottomSheet>
-          
+
           {/* .............,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,*/}
         </View>
       </View>
@@ -324,8 +364,8 @@ export default Mapscreen;
 const styles = StyleSheet.create({
   page: {
     flex: 1,
-    marginTop:15,
-    paddingTop:5,
+    marginTop: 15,
+    paddingTop: 5,
     justifyContent: 'center',
     alignItems: 'center',
   },

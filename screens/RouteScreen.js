@@ -28,6 +28,7 @@ import Geolocation from 'react-native-geolocation-service';
 import {Icon} from '@rneui/themed';
 import BottomNavigation from '../components/BottomNavigation';
 import MarkersCard from '../components/MarkersCard';
+import {getCurrentLocation, locationPermission} from '../utils/helperFunction';
 
 const IS_ANDROID = Platform.OS === 'android';
 
@@ -63,9 +64,9 @@ const RouteScreen = () => {
   const [userSelectedUserTrackingMode] = useState(
     MapboxGL.UserTrackingModes.Follow,
   );
-
-  const [Userdestination, setUserdestination] = useState(null)
-
+  const [centerCoordinate, setCenterCoordinate] = useState([
+    39.290794776187056, 8.562069822199803,
+  ]);
 
   const handleSheetChanges = useCallback(index => {
     console.log(index);
@@ -75,7 +76,7 @@ const RouteScreen = () => {
     setIsOpen(true);
     bottomSheetRef.current?.snapToIndex(index);
   }, []);
-
+  ////////////////////////////////////////////////////////////
   useMemo(async () => {
     if (IS_ANDROID && isFetchingAndroidPermission) {
       const isGranted = await MapboxGL.requestAndroidLocationPermissions();
@@ -83,7 +84,56 @@ const RouteScreen = () => {
       setIsFetchingAndroidPermission(false);
     }
   }, [isFetchingAndroidPermission]);
+  ///////////////////////////////////////////////////////////////////////
 
+  const Route = useRoute();
+  useEffect(() => {
+    if (Route && Route.params && Route.params.route) {
+      const route = Route.params.route;
+      //console.log(route);
+      setrouteGeoJSON(route);
+    }
+  }, []);
+
+  const [Userdestination, setUserdestination] = useState(null);
+  /////////////////////////////////////////////////////
+
+  const [UserLocation, setUserLocation] = useState(null);
+  useEffect(() => {
+    getLiveLocation();
+  }, []);
+
+  const getLiveLocation = async () => {
+    const locPermissionDenied = await locationPermission();
+    if (locPermissionDenied) {
+      const {latitude, longitude, heading} = await getCurrentLocation();
+      console.log('get live location after 4 second', heading);
+      setUserLocation([longitude, latitude]);
+    }
+  };
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      getLiveLocation();
+      setTimeout(getLiveLocation, 8000);
+    }, 8000);
+
+    return () => clearTimeout(timeout);
+  }, []);
+
+  console.log('UserLocation:', UserLocation);
+  ///////////////////////////////////////////////////////////////////////
+  useEffect(() => {
+    if (UserLocation) {
+      setCenterCoordinate(UserLocation);
+    }
+  }, [UserLocation]);
+  ///////////////////////////
+  const [centerpinCoordinate, setCenterpinCoordinate] = useState([
+    39.290794776187056, 8.562069822199803,
+  ]);
+
+  ///////////////////////////////////////////////////////////////////////
   const changeStyle = () => {
     setSateliteStyle(!isSateliteStyle);
   };
@@ -193,51 +243,6 @@ const RouteScreen = () => {
     }
   };
 
-  const [centerCoordinate, setCenterCoordinate] = useState([
-    39.290794776187056, 8.562069822199803,
-  ]);
-  if (UserLocation) {
-    // If it is, set centerCoordinate equal to UserLocation
-    setCenterCoordinate(UserLocation);
-  }
-  const [UserLocation, setUserLocation] = useState([]);
-
-  const Route = useRoute();
-  useEffect(() => {
-    if (Route && Route.params && Route.params.route) {
-      const route = Route.params.route;
-      //console.log(route);
-      setrouteGeoJSON(route);
-    }
-  }, []);
-  /////////////////////////////////////////////////////
-  useEffect(() => {
-    const options = {
-      enableHighAccuracy: true,
-      timeout: 20000,
-      maximumAge: 0,
-    };
-
-    const success = pos => {
-      const {latitude, longitude} = pos.coords;
-      setUserLocation([longitude, latitude]);
-    };
-
-    const error = err => {
-      console.warn(`ERROR(${err.code}): ${err.message}`);
-    };
-
-    const watchId = Geolocation.watchPosition(success, error, options);
-
-    return () => {
-      Geolocation.clearWatch(watchId);
-    };
-  }, []);
-  ///////////////////////////
-  const [centerpinCoordinate, setCenterpinCoordinate] = useState([
-    39.290794776187056, 8.562069822199803,
-  ]);
-
   useEffect(() => {
     // Set centerCoordinate to UserLocation if it's defined, otherwise set it to default coordinate
     if (UserLocation) {
@@ -247,7 +252,6 @@ const RouteScreen = () => {
     }
   }, [UserLocation]);
   ///////////////////////////////
-  
   return (
     <SafeAreaProvider>
       <View style={styles.container}>
@@ -341,9 +345,9 @@ const RouteScreen = () => {
                 iconType="flag-checkered"
                 autoCorrect={true}
                 labelValue={Userdestination}
-                onChangeText={(inputText) => setUserdestination(inputText)}
+                onChangeText={inputText => setUserdestination(inputText)}
               />
-              
+
               <Text>Destination:{Destination}</Text>
               <Text>Destination:{Userdestination}</Text>
 
@@ -357,7 +361,6 @@ const RouteScreen = () => {
             </View>
           )}
         </BottomSheet>
-        
       </View>
     </SafeAreaProvider>
   );
